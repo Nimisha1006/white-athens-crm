@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact Profile — White Athens CRM</title>
+  <link rel="icon" type="image/png" href="assets/white-athens-logo.png" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+  <nav class="app-nav">
+    <div class="app-nav__brand">
+      <a href="index.html" class="app-nav__logo-link" aria-label="White Athens CRM home">
+        <img src="assets/white-athens-logo.png" alt="White Athens CRM" class="app-nav__logo-img" height="40" />
+      </a>
+      <div>
+        <p class="app-nav__title">White Athens CRM</p>
+        <p class="app-nav__subtitle">Contact Profile</p>
+      </div>
+    </div>
+    <div class="app-nav__actions">
+      <a href="index.html" class="btn btn--secondary btn--sm">
+        <i data-lucide="arrow-left"></i>
+        Back to Contacts
+      </a>
+      <button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle theme">
+        <span data-theme-icon><i data-lucide="moon"></i></span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-wrap">
+    <nav class="breadcrumb" id="breadcrumb" aria-label="Breadcrumb"></nav>
+  </div>
+
+  <div id="stickyHeader" class="contact-sticky"></div>
+  <div id="editBanner" class="edit-banner" hidden></div>
+
+  <form id="contactForm" novalidate>
+    <div class="contact-layout">
+      <div class="contact-main" id="mainSections"></div>
+      <div class="contact-sidebar" id="sidebarSections"></div>
+    </div>
+  </form>
+
+  <script src="js/data.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/validation.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/contact.js"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

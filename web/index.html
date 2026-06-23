@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contacts — White Athens CRM</title>
+  <link rel="icon" type="image/png" href="assets/white-athens-logo.png" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+  <nav class="app-nav">
+    <div class="app-nav__brand">
+      <a href="index.html" class="app-nav__logo-link" aria-label="White Athens CRM home">
+        <img src="assets/white-athens-logo.png" alt="White Athens CRM" class="app-nav__logo-img" height="40" />
+      </a>
+      <div>
+        <p class="app-nav__title">White Athens CRM</p>
+        <p class="app-nav__subtitle">Contact Management</p>
+      </div>
+    </div>
+    <div class="app-nav__actions">
+      <button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle theme">
+        <span data-theme-icon><i data-lucide="moon"></i></span>
+      </button>
+    </div>
+  </nav>
+
+  <main class="page">
+    <div class="dashboard-header">
+      <div>
+        <h1>Contacts</h1>
+        <p>Manage and search your customer relationships</p>
+      </div>
+      <a href="contact.html?new=1" class="btn btn--primary">
+        <i data-lucide="user-plus"></i>
+        Add New Contact
+      </a>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-box">
+        <i data-lucide="search"></i>
+        <input type="search" id="searchInput" placeholder="Search by name, email, mobile, or ID…" autocomplete="off" />
+      </div>
+      <div class="filter-group" id="statusFilters">
+        <button type="button" class="filter-btn is-active" data-filter-status="all">All Status</button>
+        <button type="button" class="filter-btn" data-filter-status="Active">Active</button>
+        <button type="button" class="filter-btn" data-filter-status="Inactive">Inactive</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="filter-group" id="cityFilters">
+        <span style="font-size:12px;color:var(--text-muted);align-self:center;margin-right:4px;">City:</span>
+      </div>
+      <div class="filter-group" id="orgFilters">
+        <span style="font-size:12px;color:var(--text-muted);align-self:center;margin-right:4px;">Organization:</span>
+      </div>
+    </div>
+
+    <div class="card table-card">
+      <div class="table-wrap">
+        <table class="data-table" id="contactsTable">
+          <thead>
+            <tr>
+              <th data-sort="id">Contact ID <i data-lucide="arrow-up-down" class="sort-icon"></i></th>
+              <th data-sort="fullName">Name <i data-lucide="arrow-up-down" class="sort-icon"></i></th>
+              <th data-sort="mobileNumber">Mobile <i data-lucide="arrow-up-down" class="sort-icon"></i></th>
+              <th data-sort="emailAddress">Email <i data-lucide="arrow-up-down" class="sort-icon"></i></th>
+              <th data-sort="organization">Organization <i data-lucide="arrow-up-down" class="sort-icon"></i></th>
+              <th data-sort="city">City <i data-lucide="arrow-up-down" class="sort-icon"></i></th>
+              <th data-sort="status">Status <i data-lucide="arrow-up-down" class="sort-icon"></i></th>
+              <th data-sort="createdDate">Created <i data-lucide="arrow-up-down" class="sort-icon"></i></th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </main>
+
+  <script src="js/data.js"></script>
+  
+  <script src="js/theme.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>
