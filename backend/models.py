@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, String, Date, DateTime, Integer, Text, CHAR, ForeignKey
+from sqlalchemy import Column, BigInteger, String, Date, DateTime, Integer, Text, CHAR, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -8,20 +8,49 @@ class Contact(Base):
 
     id = Column(BigInteger, primary_key=True, index=True)
     mob_id = Column(String(50), unique=True, nullable=False)
+
+    # Name
     salutation = Column(String(20))
     first_name = Column(String(100))
     last_name = Column(String(100))
+    short_name = Column(String(100))
     full_name = Column(String(200))
+
+    # Origin
+    originating_channel = Column(String(100))
+    source1 = Column(String(100))
+    source2 = Column(String(100))
+    entered_by = Column(String(100))
+
+    # Reporting Params
+    cat1 = Column(String(100))
+    cat2 = Column(String(100))
+    cat3 = Column(String(100))
+    cat4 = Column(String(100))
+    cat5 = Column(String(100))
+
+    # Contact Info
     mobile_number = Column(String(20))
     alt_mobile_number = Column(String(20))
     email = Column(String(255))
     alt_email = Column(String(255))
+
+    # Address
+    is_permanent_same_as_current = Column(CHAR(1), default='N')
+    country_of_residence = Column(String(10))
+
+    # Personal
     gender = Column(String(20))
     dob = Column(Date)
     marital_status = Column(String(50))
     nationality = Column(String(50))
     language = Column(String(50))
     religion = Column(String(100))
+    education = Column(String(100))
+    income_category = Column(String(20))
+    father_name = Column(String(200))
+
+    # Profession
     occupation = Column(String(100))
     organization = Column(String(255))
     designation = Column(String(255))
@@ -30,15 +59,28 @@ class Contact(Base):
     experience_months = Column(Integer, default=0)
     primary_expertise = Column(String(255))
     alt_expertise = Column(String(255))
+
+    # Identification
     pan = Column(String(20))
     aadhaar = Column(String(20))
-    national_id = Column(String(50))
-    source_channel = Column(String(100), default='Manual Entry')
+    national_identification_code = Column(String(50))
+
+    # Engagement
     talked = Column(CHAR(1), default='N')
     met = Column(CHAR(1), default='N')
     responded = Column(CHAR(1), default='N')
+
+    # Attachments
+    cv_text = Column(Text)
+    image1 = Column(Text)
+    image2 = Column(Text)
+    attachment1 = Column(Text)
+    attachment2 = Column(Text)
+
+    # Audit
     status = Column(String(50), default='Active')
     mark_for_deletion = Column(CHAR(1), default='N')
+    reason_for_deletion = Column(Text)
     created_by = Column(String(100))
     created_date = Column(DateTime, default=func.now())
     modified_by = Column(String(100))
@@ -76,14 +118,14 @@ class SocialMedia(Base):
 
     id = Column(BigInteger, primary_key=True, index=True)
     contact_id = Column(BigInteger, ForeignKey("contacts.id"), nullable=False)
-    linkedin = Column(String(500))
-    facebook = Column(String(500))
-    instagram = Column(String(500))
-    twitter = Column(String(500))
+    linked_in_id = Column(String(500))
+    facebook_id = Column(String(500))
+    instagram_id = Column(String(500))
+    twitter_id = Column(String(500))
     website = Column(String(500))
-    youtube = Column(String(500))
-    telegram = Column(String(255))
-    discord = Column(String(255))
+    you_tube_channel = Column(String(500))
+    telegram_id = Column(String(255))
+    discord_id = Column(String(255))
     created_date = Column(DateTime, default=func.now())
     modified_date = Column(DateTime, default=func.now(), onupdate=func.now())
 

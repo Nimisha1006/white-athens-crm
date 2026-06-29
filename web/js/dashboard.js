@@ -20,6 +20,8 @@ async function fetchContacts() {
     const params = new URLSearchParams({
       page: state.page,
       per_page: PAGE_SIZE,
+      sort_by: state.sortKey,      // ← ADD
+      sort_dir: state.sortDir,     // ← ADD
     });
 
     if (state.search) params.append('search', state.search);

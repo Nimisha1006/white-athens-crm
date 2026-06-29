@@ -1,24 +1,23 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, func
+from sqlalchemy import or_
+from sqlalchemy import asc, desc
 from typing import Optional
 import math
+import os
 
 from database import engine, get_db, Base
 import models, schemas
 
-# Create all tables
 Base.metadata.create_all(bind=engine)
 
-# FastAPI app
 app = FastAPI(
     title="White Athens CRM API",
     description="Contact Management System API",
     version="1.0.0"
 )
 
-# CORS — allows UI to talk to API
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,12 +26,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Helper: Generate MOB ID ──
 def generate_mob_id(db: Session) -> str:
     count = db.query(models.Contact).count()
     return f"MOB-{str(count + 1).zfill(3)}"
 
-# ── Helper: Create Audit Log ──
 def create_audit(db: Session, contact_id: int, mob_id: str, action: str, changed_by: str = "System", remarks: str = ""):
     log = models.AuditLog(
         contact_id=contact_id,
@@ -43,7 +40,6 @@ def create_audit(db: Session, contact_id: int, mob_id: str, action: str, changed
     )
     db.add(log)
 
-# ── ROOT ──
 @app.get("/")
 def root():
     return {"message": "White Athens CRM API is running!", "version": "1.0.0"}
@@ -51,7 +47,6 @@ def root():
 # ── CREATE CONTACT ──
 @app.post("/api/contacts", response_model=schemas.ContactOut, status_code=201)
 def create_contact(contact: schemas.ContactCreate, db: Session = Depends(get_db)):
-    # Check duplicate mobile
     existing = db.query(models.Contact).filter(
         models.Contact.mobile_number == contact.mobile_number,
         models.Contact.mark_for_deletion == 'N'
@@ -59,7 +54,6 @@ def create_contact(contact: schemas.ContactCreate, db: Session = Depends(get_db)
     if existing:
         raise HTTPException(status_code=400, detail="Mobile number already exists!")
 
-    # Check duplicate email
     if contact.email:
         existing_email = db.query(models.Contact).filter(
             models.Contact.email == contact.email,
@@ -68,10 +62,8 @@ def create_contact(contact: schemas.ContactCreate, db: Session = Depends(get_db)
         if existing_email:
             raise HTTPException(status_code=400, detail="Email already exists!")
 
-    # Generate MOB ID
     mob_id = generate_mob_id(db)
 
-    # Create contact
     db_contact = models.Contact(
         mob_id=mob_id,
         created_by="Admin",
@@ -81,41 +73,31 @@ def create_contact(contact: schemas.ContactCreate, db: Session = Depends(get_db)
     db.add(db_contact)
     db.flush()
 
-    # Add addresses
     if contact.addresses:
         for addr in contact.addresses:
-            db_addr = models.Address(contact_id=db_contact.id, **addr.model_dump())
-            db.add(db_addr)
+            db.add(models.Address(contact_id=db_contact.id, **addr.model_dump()))
 
-    # Add social media
     if contact.social_media:
-        db_social = models.SocialMedia(contact_id=db_contact.id, **contact.social_media.model_dump())
-        db.add(db_social)
+        db.add(models.SocialMedia(contact_id=db_contact.id, **contact.social_media.model_dump()))
 
-    # Add marketing preferences
     if contact.marketing_preferences:
-        db_mkt = models.MarketingPreference(contact_id=db_contact.id, **contact.marketing_preferences.model_dump())
-        db.add(db_mkt)
+        db.add(models.MarketingPreference(contact_id=db_contact.id, **contact.marketing_preferences.model_dump()))
     else:
-        db_mkt = models.MarketingPreference(contact_id=db_contact.id)
-        db.add(db_mkt)
+        db.add(models.MarketingPreference(contact_id=db_contact.id))
 
-    # Add notes
     if contact.notes:
-        db_notes = models.Note(contact_id=db_contact.id, **contact.notes.model_dump())
-        db.add(db_notes)
+        db.add(models.Note(contact_id=db_contact.id, **contact.notes.model_dump()))
     else:
-        db_notes = models.Note(contact_id=db_contact.id)
-        db.add(db_notes)
+        db.add(models.Note(contact_id=db_contact.id))
 
-    # Audit log
     create_audit(db, db_contact.id, mob_id, "CREATE", remarks="Contact created")
-
     db.commit()
     db.refresh(db_contact)
     return db_contact
 
-# ── GET ALL CONTACTS (with pagination, search, filters) ──
+
+
+# ── GET ALL CONTACTS ──
 @app.get("/api/contacts", response_model=schemas.PaginatedContacts)
 def get_contacts(
     page: int = Query(1, ge=1),
@@ -124,9 +106,10 @@ def get_contacts(
     status: Optional[str] = None,
     city: Optional[str] = None,
     organization: Optional[str] = None,
+    sort_by: Optional[str] = Query(default="created_date"),   # ← ADD
+    sort_dir: Optional[str] = Query(default="desc"),           # ← ADD
     db: Session = Depends(get_db)
 ):
-    # Subquery: get the Current address city for each contact
     current_addr = db.query(
         models.Address.contact_id,
         models.Address.city
@@ -139,7 +122,6 @@ def get_contacts(
         current_addr, models.Contact.id == current_addr.c.contact_id
     ).filter(models.Contact.mark_for_deletion == 'N')
 
-    # Search
     if search:
         query = query.filter(or_(
             models.Contact.full_name.ilike(f"%{search}%"),
@@ -149,7 +131,6 @@ def get_contacts(
             models.Contact.organization.ilike(f"%{search}%")
         ))
 
-    # Filters
     if status and status != "all":
         query = query.filter(models.Contact.status == status)
     if organization and organization != "all":
@@ -157,16 +138,29 @@ def get_contacts(
     if city and city != "all":
         query = query.filter(current_addr.c.city == city)
 
-    # Pagination
+    SORT_FIELD_MAP = {
+        "id":           models.Contact.mob_id,
+        "fullName":     models.Contact.first_name,
+        "mobileNumber": models.Contact.mobile_number,
+        "emailAddress": models.Contact.email,
+        "organization": models.Contact.organization,
+        "city":         current_addr.c.city,
+        "status":       models.Contact.status,
+        "createdDate":  models.Contact.created_date,
+        "created_date": models.Contact.created_date,
+    }
+    sort_column = SORT_FIELD_MAP.get(sort_by, models.Contact.created_date)
+    order = desc(sort_column) if sort_dir == "desc" else asc(sort_column)
+
     total = query.count()
     total_pages = math.ceil(total / per_page) if total else 1
-    rows = query.order_by(models.Contact.created_date.desc()) \
+    rows = query.order_by(order) \
                 .offset((page - 1) * per_page) \
                 .limit(per_page).all()
 
     data = []
     for contact_obj, city_val in rows:
-        item = schemas.ContactList(
+        data.append(schemas.ContactList(
             id=contact_obj.id,
             mob_id=contact_obj.mob_id,
             full_name=contact_obj.full_name,
@@ -176,16 +170,9 @@ def get_contacts(
             city=city_val,
             status=contact_obj.status,
             created_date=contact_obj.created_date,
-        )
-        data.append(item)
+        ))
 
-    return {
-        "total": total,
-        "page": page,
-        "per_page": per_page,
-        "total_pages": total_pages,
-        "data": data
-    }
+    return {"total": total, "page": page, "per_page": per_page, "total_pages": total_pages, "data": data}
 
 # ── GET ONE CONTACT ──
 @app.get("/api/contacts/{contact_id}", response_model=schemas.ContactOut)
@@ -199,8 +186,6 @@ def get_contact(contact_id: int, db: Session = Depends(get_db)):
     return contact
 
 # ── UPDATE CONTACT ──
-# ── REPLACE your existing update_contact function in main.py with this ──
-
 @app.put("/api/contacts/{contact_id}", response_model=schemas.ContactOut)
 def update_contact(contact_id: int, contact_update: schemas.ContactUpdate, db: Session = Depends(get_db)):
     db_contact = db.query(models.Contact).filter(
@@ -210,40 +195,37 @@ def update_contact(contact_id: int, contact_update: schemas.ContactUpdate, db: S
     if not db_contact:
         raise HTTPException(status_code=404, detail="Contact not found!")
 
-    # ── Duplicate mobile check (excluding this contact itself) ──
     if contact_update.mobile_number:
-        dup_mobile = db.query(models.Contact).filter(
+        dup = db.query(models.Contact).filter(
             models.Contact.mobile_number == contact_update.mobile_number,
             models.Contact.id != contact_id,
             models.Contact.mark_for_deletion == 'N'
         ).first()
-        if dup_mobile:
+        if dup:
             raise HTTPException(status_code=400, detail="Mobile number already used by another contact!")
 
-    # ── Duplicate email check (excluding this contact itself) ──
     if contact_update.email:
-        dup_email = db.query(models.Contact).filter(
+        dup = db.query(models.Contact).filter(
             models.Contact.email == contact_update.email,
             models.Contact.id != contact_id,
             models.Contact.mark_for_deletion == 'N'
         ).first()
-        if dup_email:
+        if dup:
             raise HTTPException(status_code=400, detail="Email already used by another contact!")
 
-    # Update main fields
-    update_data = contact_update.model_dump(exclude={'addresses', 'social_media', 'marketing_preferences', 'notes'}, exclude_none=True)
+    update_data = contact_update.model_dump(
+        exclude={'addresses', 'social_media', 'marketing_preferences', 'notes'},
+        exclude_none=True
+    )
     for field, value in update_data.items():
         setattr(db_contact, field, value)
     db_contact.modified_by = "Admin"
 
-    # Update addresses
     if contact_update.addresses is not None:
         db.query(models.Address).filter(models.Address.contact_id == contact_id).delete()
         for addr in contact_update.addresses:
-            db_addr = models.Address(contact_id=contact_id, **addr.model_dump())
-            db.add(db_addr)
+            db.add(models.Address(contact_id=contact_id, **addr.model_dump()))
 
-    # Update social media
     if contact_update.social_media is not None:
         existing = db.query(models.SocialMedia).filter(models.SocialMedia.contact_id == contact_id).first()
         if existing:
@@ -252,7 +234,6 @@ def update_contact(contact_id: int, contact_update: schemas.ContactUpdate, db: S
         else:
             db.add(models.SocialMedia(contact_id=contact_id, **contact_update.social_media.model_dump()))
 
-    # Update marketing preferences
     if contact_update.marketing_preferences is not None:
         existing = db.query(models.MarketingPreference).filter(models.MarketingPreference.contact_id == contact_id).first()
         if existing:
@@ -261,7 +242,6 @@ def update_contact(contact_id: int, contact_update: schemas.ContactUpdate, db: S
         else:
             db.add(models.MarketingPreference(contact_id=contact_id, **contact_update.marketing_preferences.model_dump()))
 
-    # Update notes
     if contact_update.notes is not None:
         existing = db.query(models.Note).filter(models.Note.contact_id == contact_id).first()
         if existing:
@@ -270,9 +250,7 @@ def update_contact(contact_id: int, contact_update: schemas.ContactUpdate, db: S
         else:
             db.add(models.Note(contact_id=contact_id, **contact_update.notes.model_dump()))
 
-    # Audit log
     create_audit(db, contact_id, db_contact.mob_id, "UPDATE", remarks="Contact updated")
-
     db.commit()
     db.refresh(db_contact)
     return db_contact
@@ -289,13 +267,11 @@ def delete_contact(contact_id: int, db: Session = Depends(get_db)):
 
     db_contact.mark_for_deletion = 'Y'
     db_contact.status = 'Inactive'
-
     create_audit(db, contact_id, db_contact.mob_id, "DELETE", remarks="Contact marked for deletion")
-
     db.commit()
     return {"message": "Contact deleted successfully!", "mob_id": db_contact.mob_id}
 
-# ── SEARCH CONTACTS ──
+# ── SEARCH ──
 @app.get("/api/contacts/search/query", response_model=list[schemas.ContactList])
 def search_contacts(q: str = Query(..., min_length=1), db: Session = Depends(get_db)):
     contacts = db.query(models.Contact).filter(
@@ -310,7 +286,7 @@ def search_contacts(q: str = Query(..., min_length=1), db: Session = Depends(get
     ).limit(20).all()
     return contacts
 
-# ── GET FILTER OPTIONS ──
+# ── FILTERS ──
 @app.get("/api/filters")
 def get_filters(db: Session = Depends(get_db)):
     organizations = db.query(models.Contact.organization).filter(
@@ -328,7 +304,7 @@ def get_filters(db: Session = Depends(get_db)):
         "cities": [c[0] for c in cities if c[0]]
     }
 
-# ── GET AUDIT LOG ──
+# ── AUDIT LOG ──
 @app.get("/api/contacts/{contact_id}/audit", response_model=list[schemas.AuditLogOut])
 def get_audit_log(contact_id: int, db: Session = Depends(get_db)):
     logs = db.query(models.AuditLog).filter(

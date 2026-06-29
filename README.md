@@ -1,46 +1,93 @@
-# White Athens CRM — Contact Management (Pure HTML/CSS/JS)
+# White Athens CRM — Contact Management System
 
-Premium SaaS-style Contact Management UI built with **pure HTML, CSS, and JavaScript** — no React, Vue, or other frameworks.
+A full-stack CRM platform built during internship at White Athens AI Platform.
 
-## Pages
+## Tech Stack
+- **Frontend**: HTML, CSS, JavaScript
+- **Backend**: Python, FastAPI, SQLAlchemy
+- **Database**: PostgreSQL
+- **Deployment**: Docker, docker-compose
 
-| File | Description |
-|------|-------------|
-| `web/index.html` | **Dashboard** — search, filters, sortable table, pagination |
-| `web/contact.html` | **Contact Profile** — full profile with all sections A–J |
-
-## Features
-
-- Light / Dark mode (CSS variables + toggle)
-- Sticky action bar (Save, Edit, Delete, Email, Call, WhatsApp)
-- Collapsible card sections
-- Engagement dashboard with green/red Yes/No indicators
-- Marketing preference toggle switches
-- Masked ID fields (PAN, Aadhaar, National ID) — click to reveal
-- Expandable notes (click to expand when viewing)
-- Profile picture upload
-- Form validation on all fields
-- Responsive (desktop + tablet + mobile breakpoints)
-- 12 sample contacts stored in `localStorage`
-
-## Quick Start
-
-Open `web/index.html` in a browser, or run a local server:
-
-```bash
-cd web
-npx serve .
+## Project Structure
+```
+CRM/
+├── backend/
+│   ├── main.py          # FastAPI app + all routes
+│   ├── models.py        # SQLAlchemy models
+│   ├── schemas.py       # Pydantic schemas
+│   ├── database.py      # DB connection
+│   └── requirements.txt
+├── web/
+│   ├── index.html       # Dashboard
+│   ├── contact.html     # Contact profile
+│   ├── css/styles.css
+│   └── js/
+│       ├── api.js       # API layer
+│       ├── contact.js   # Contact form logic
+│       ├── dashboard.js # Dashboard logic
+│       ├── validation.js
+│       ├── data.js
+│       └── theme.js
+├── schema.sql           # Database schema
+├── docker-compose.yml
+├── Dockerfile.backend
+├── Dockerfile.web
+└── .env.example
 ```
 
-Then visit **http://localhost:3000**
+## Quick Start (Docker)
 
-## Tech
+1. Clone the repository
+2. Copy `.env.example` to `.env` and set your password:
+   ```
+   cp .env.example .env
+   ```
+3. Start everything with one command:
+   ```
+   docker-compose up --build
+   ```
+4. Open your browser:
+   - Frontend: http://localhost
+   - API Docs: http://localhost:8000/docs
 
-- HTML5 + CSS3 (custom design system with CSS variables)
-- Vanilla JavaScript (ES6+)
-- [Lucide Icons](https://lucide.dev/) via CDN (icons only, not a framework)
-- [Inter](https://fonts.google.com/specimen/Inter) typography
+## Manual Setup (Local)
 
-## Also in this repo
+### Database
+1. Install PostgreSQL
+2. Create database: `createdb crm_db`
+3. Run schema: `psql -d crm_db -f schema.sql`
 
-`frontend/` contains an earlier React prototype (Part 1 UI). The **`web/`** folder is the version that matches the pure HTML/CSS/JS assignment requirements.
+### Backend
+```bash
+cd backend
+pip install -r requirements.txt
+# Edit database.py and set your PostgreSQL password
+uvicorn main:app --reload
+```
+
+### Frontend
+Open `web/index.html` with Live Server in VS Code
+or any static file server.
+
+## API Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/contacts | List all contacts |
+| POST | /api/contacts | Create contact |
+| GET | /api/contacts/{id} | Get one contact |
+| PUT | /api/contacts/{id} | Update contact |
+| DELETE | /api/contacts/{id} | Soft delete |
+| GET | /api/contacts/search/query | Search |
+| GET | /api/filters | Get filter options |
+| GET | /api/contacts/{id}/audit | Audit log |
+
+## Features
+- Complete CRUD for contacts
+- Real-time search and multi-filter dashboard
+- Light/Dark mode
+- Pagination
+- Soft delete with audit trail
+- Frontend + backend validation
+- Duplicate prevention (mobile + email)
+- DKIM/SPF/DMARC email infrastructure (AWS SES)
+- Docker deployment

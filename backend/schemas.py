@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, field_validator
 from typing import Optional, List
 from datetime import date, datetime
 
@@ -24,14 +24,14 @@ class AddressOut(AddressBase):
 
 # ── Social Media Schemas ──
 class SocialMediaBase(BaseModel):
-    linkedin: Optional[str] = None
-    facebook: Optional[str] = None
-    instagram: Optional[str] = None
-    twitter: Optional[str] = None
+    linked_in_id: Optional[str] = None
+    facebook_id: Optional[str] = None
+    instagram_id: Optional[str] = None
+    twitter_id: Optional[str] = None
     website: Optional[str] = None
-    youtube: Optional[str] = None
-    telegram: Optional[str] = None
-    discord: Optional[str] = None
+    you_tube_channel: Optional[str] = None
+    telegram_id: Optional[str] = None
+    discord_id: Optional[str] = None
 
 class SocialMediaCreate(SocialMediaBase):
     pass
@@ -78,20 +78,48 @@ class NoteOut(NoteBase):
 
 # ── Contact Schemas ──
 class ContactBase(BaseModel):
+    # Name
     salutation: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    short_name: Optional[str] = None
     full_name: Optional[str] = None
+
+    # Origin
+    originating_channel: Optional[str] = None
+    source1: Optional[str] = None
+    source2: Optional[str] = None
+    entered_by: Optional[str] = None
+
+    # Reporting Params
+    cat1: Optional[str] = None
+    cat2: Optional[str] = None
+    cat3: Optional[str] = None
+    cat4: Optional[str] = None
+    cat5: Optional[str] = None
+
+    # Contact Info
     mobile_number: Optional[str] = None
     alt_mobile_number: Optional[str] = None
     email: Optional[str] = None
     alt_email: Optional[str] = None
+
+    # Address meta
+    is_permanent_same_as_current: Optional[str] = "N"
+    country_of_residence: Optional[str] = None
+
+    # Personal
     gender: Optional[str] = None
     dob: Optional[date] = None
     marital_status: Optional[str] = None
     nationality: Optional[str] = None
     language: Optional[str] = None
     religion: Optional[str] = None
+    education: Optional[str] = None
+    income_category: Optional[str] = None
+    father_name: Optional[str] = None
+
+    # Profession
     occupation: Optional[str] = None
     organization: Optional[str] = None
     designation: Optional[str] = None
@@ -100,14 +128,27 @@ class ContactBase(BaseModel):
     experience_months: Optional[int] = 0
     primary_expertise: Optional[str] = None
     alt_expertise: Optional[str] = None
+
+    # Identification
     pan: Optional[str] = None
     aadhaar: Optional[str] = None
-    national_id: Optional[str] = None
-    source_channel: Optional[str] = "Manual Entry"
+    national_identification_code: Optional[str] = None
+
+    # Engagement
     talked: Optional[str] = "N"
     met: Optional[str] = "N"
     responded: Optional[str] = "N"
+
+    # Attachments
+    cv_text: Optional[str] = None
+    image1: Optional[str] = None
+    image2: Optional[str] = None
+    attachment1: Optional[str] = None
+    attachment2: Optional[str] = None
+
+    # Audit
     status: Optional[str] = "Active"
+    reason_for_deletion: Optional[str] = None
 
 class ContactCreate(ContactBase):
     mobile_number: str
@@ -120,9 +161,10 @@ class ContactCreate(ContactBase):
     @field_validator('mobile_number')
     @classmethod
     def validate_mobile(cls, v):
-        if not v.isdigit() or len(v) != 10:
-            raise ValueError('Mobile number must be 10 digits')
-        return v
+        clean = ''.join(filter(str.isdigit, str(v)))
+        if len(clean) != 10:
+            raise ValueError('Mobile number must be exactly 10 digits')
+        return clean
 
 class ContactUpdate(ContactBase):
     addresses: Optional[List[AddressCreate]] = None
